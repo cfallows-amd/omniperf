@@ -69,10 +69,11 @@ class gfx942_soc(OmniSoC_Base):
         )
         # self.roofline_obj = Roofline(args, self._mspec)
 
-        # --showmclkrange is broken in MI308X, hardcode freq
-        if self._mspec.gpu_model == "MI308X":
-            self._mspec.max_mclk = 1300
-            self._mspec.cur_mclk = 1300
+        # Workaround for broken --showmclkrange
+        # MI300X/MI300A/MI308X all seem to have 1300MHz mclk
+        # if self._mspec.gpu_model in ["MI308X", "MI300X_A1", "MI300A_A1"]:
+        self._mspec.max_mclk = 1300
+        self._mspec.cur_mclk = 1300
 
         # Set arch specific specs
         self._mspec._l2_banks = 16
@@ -95,12 +96,14 @@ class gfx942_soc(OmniSoC_Base):
         super().post_profiling()
 
         if not self.get_args().no_roof:
-            logging.info("[roofline] Checking for roofline.csv in " + str(self.get_args().path))
+            console_log(
+                "roofline", "Checking for roofline.csv in " + str(self.get_args().path)
+            )
             if not os.path.isfile(os.path.join(self.get_args().path, "roofline.csv")):
-                mibench(self.get_args())
+                mibench(self.get_args(), self._mspec)
             self.roofline_obj.post_processing()
         else:
-            logging.info("[roofline] Skipping roofline")
+            console_log("roofline", "Skipping roofline")
 
     @demarcate
     def analysis_setup(self, roofline_parameters=None):
